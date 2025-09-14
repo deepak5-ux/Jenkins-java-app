@@ -10,7 +10,7 @@ pipeline {
     stage('Build Inside Container') {
       steps {
         script {
-          docker.image('abhishekf5/maven-abhishek-docker-agent:v1').inside('-v /var/run/docker.sock:/var/run/docker.sock') {
+          docker.image('maven:3.9.6-eclipse-temurin-17').inside('-v /var/run/docker.sock:/var/run/docker.sock') {
 
             // --- Clean workspace ---
             sh 'rm -rf *'
