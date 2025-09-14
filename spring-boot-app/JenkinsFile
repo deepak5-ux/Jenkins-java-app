@@ -1,88 +1,67 @@
 pipeline {
-  agent {
-    docker {
-      image 'abhishekf5/maven-abhishek-docker-agent:v1'
-      args '-v /var/run/docker.sock:/var/run/docker.sock'
-    }
-  }
+  agent any
 
   options {
     disableConcurrentBuilds()
-    // Removed skipDefaultCheckout() so Jenkins uses container git
+    skipDefaultCheckout() // we’ll handle checkout ourselves
   }
 
   stages {
-    stage('Clean Workspace') {
-      steps {
-        deleteDir() // wipe everything
-      }
-    }
-
-    stage('Checkout') {
-      steps {
-        checkout scm // ensures git runs inside container
-      }
-    }
-
-    stage('Build and Test') {
-      steps {
-        sh '''
-          cd spring-boot-app
-          mvn clean package
-        '''
-      }
-    }
-
-    stage('Static Code Analysis') {
-      environment {
-        SONAR_URL = "http://52.23.185.63:9000"
-      }
-      steps {
-        withCredentials([string(credentialsId: 'sonarqube', variable: 'SONAR_AUTH_TOKEN')]) {
-          sh '''
-            cd spring-boot-app
-            mvn verify sonar:sonar \
-              -Dsonar.projectKey=spring-boot-app \
-              -Dsonar.host.url=${SONAR_URL} \
-              -Dsonar.login=$SONAR_AUTH_TOKEN
-          '''
-        }
-      }
-    }
-
-    stage('Build and Push Docker Image') {
-      environment {
-        DOCKER_IMAGE = "deepakb05/java-cicd:${BUILD_NUMBER}"
-      }
+    stage('Build Inside Container') {
       steps {
         script {
-          sh 'cd spring-boot-app && docker build -t ${DOCKER_IMAGE} .'
-          def dockerImage = docker.image("${DOCKER_IMAGE}")
-          docker.withRegistry('https://index.docker.io/v1/', "docker-cred") {
-            dockerImage.push()
+          docker.image('abhishekf5/maven-abhishek-docker-agent:v1').inside('-v /var/run/docker.sock:/var/run/docker.sock') {
+
+            // --- Clean workspace ---
+            sh 'rm -rf *'
+
+            // --- Checkout ---
+            sh '''
+              git clone https://github.com/deepak5-ux/Jenkins-java-app.git
+              cd Jenkins-java-app
+              git checkout main
+            '''
+
+            // --- Build & Test ---
+            sh '''
+              cd Jenkins-java-app/spring-boot-app
+              mvn clean package
+            '''
+
+            // --- Static Code Analysis ---
+            withCredentials([string(credentialsId: 'sonarqube', variable: 'SONAR_AUTH_TOKEN')]) {
+              sh '''
+                cd Jenkins-java-app/spring-boot-app
+                mvn clean verify sonar:sonar \
+                  -Dsonar.projectKey=spring-boot-app \
+                  -Dsonar.host.url=http://52.23.185.63:9000 \
+                  -Dsonar.login=$SONAR_AUTH_TOKEN
+              '''
+            }
+
+            // --- Build & Push Docker Image ---
+            withCredentials([usernamePassword(credentialsId: 'docker-cred', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
+              sh '''
+                cd Jenkins-java-app/spring-boot-app
+                docker build -t deepakb05/java-cicd:${BUILD_NUMBER} .
+                echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin
+                docker push deepakb05/java-cicd:${BUILD_NUMBER}
+              '''
+            }
+
+            // --- Update Deployment File and Push ---
+            withCredentials([string(credentialsId: 'github', variable: 'GITHUB_TOKEN')]) {
+              sh '''
+                cd Jenkins-java-app
+                git config user.email "deepakbalraj511@gmail.com"
+                git config user.name "deepak5-ux"
+                sed -i "s/replaceImageTag/${BUILD_NUMBER}/g" spring-boot-app-manifests/deployment.yml
+                git add spring-boot-app-manifests/deployment.yml
+                git commit -m "Update deployment image to version ${BUILD_NUMBER}" || echo "No changes to commit"
+                git push https://${GITHUB_TOKEN}@github.com/deepak5-ux/Jenkins-java-app HEAD:main
+              '''
+            }
           }
-        }
-      }
-    }
-
-    stage('Update Deployment File') {
-      environment {
-        GIT_REPO_NAME = "Jenkins-java-app"
-        GIT_USER_NAME = "deepak5-ux"
-      }
-      steps {
-        withCredentials([string(credentialsId: 'github', variable: 'GITHUB_TOKEN')]) {
-          sh '''
-            git config user.email "deepakbalraj511@gmail.com"
-            git config user.name "deepak5-ux"
-
-            sed -i "s/replaceImageTag/${BUILD_NUMBER}/g" spring-boot-app-manifests/deployment.yml
-
-            git add spring-boot-app-manifests/deployment.yml
-            git commit -m "Update deployment image to version ${BUILD_NUMBER}" || echo "No changes to commit"
-
-            git push https://${GITHUB_TOKEN}@github.com/${GIT_USER_NAME}/${GIT_REPO_NAME} HEAD:main
-          '''
         }
       }
     }
