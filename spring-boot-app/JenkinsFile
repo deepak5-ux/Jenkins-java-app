@@ -2,26 +2,25 @@ pipeline {
   agent {
     docker {
       image 'abhishekf5/maven-abhishek-docker-agent:v1'
-      // Removed --user root to avoid permission issues with target/ folder
       args '-v /var/run/docker.sock:/var/run/docker.sock'
     }
   }
 
   options {
     disableConcurrentBuilds()
-    skipDefaultCheckout()
+    // Removed skipDefaultCheckout() so Jenkins uses container git
   }
 
   stages {
     stage('Clean Workspace') {
       steps {
-        deleteDir() // wipes workspace before pulling new code
+        deleteDir() // wipe everything
       }
     }
 
     stage('Checkout') {
       steps {
-        git branch: 'main', url: 'https://github.com/deepak5-ux/Jenkins-java-app.git'
+        checkout scm // ensures git runs inside container
       }
     }
 
@@ -29,8 +28,6 @@ pipeline {
       steps {
         sh '''
           cd spring-boot-app
-          # ensure no permission issues
-          chmod -R 777 target || true
           mvn clean package
         '''
       }
@@ -44,7 +41,7 @@ pipeline {
         withCredentials([string(credentialsId: 'sonarqube', variable: 'SONAR_AUTH_TOKEN')]) {
           sh '''
             cd spring-boot-app
-            mvn clean verify sonar:sonar \
+            mvn verify sonar:sonar \
               -Dsonar.projectKey=spring-boot-app \
               -Dsonar.host.url=${SONAR_URL} \
               -Dsonar.login=$SONAR_AUTH_TOKEN
@@ -56,7 +53,6 @@ pipeline {
     stage('Build and Push Docker Image') {
       environment {
         DOCKER_IMAGE = "deepakb05/java-cicd:${BUILD_NUMBER}"
-        REGISTRY_CREDENTIALS = credentials('docker-cred')
       }
       steps {
         script {
@@ -79,9 +75,12 @@ pipeline {
           sh '''
             git config user.email "deepakbalraj511@gmail.com"
             git config user.name "deepak5-ux"
+
             sed -i "s/replaceImageTag/${BUILD_NUMBER}/g" spring-boot-app-manifests/deployment.yml
+
             git add spring-boot-app-manifests/deployment.yml
             git commit -m "Update deployment image to version ${BUILD_NUMBER}" || echo "No changes to commit"
+
             git push https://${GITHUB_TOKEN}@github.com/${GIT_USER_NAME}/${GIT_REPO_NAME} HEAD:main
           '''
         }
