@@ -42,25 +42,17 @@ pipeline {
     }
 
     stage('Build & Push Docker Image') {
-      environment {
-        DOCKER_IMAGE = "deepakb05/java-cicd:${BUILD_NUMBER}"
-      }
       steps {
-        script {
-          docker.image('maven:3.9.6-eclipse-temurin-17').inside('-v /var/run/docker.sock:/var/run/docker.sock --group-add $(getent group docker | cut -d: -f3') {
-            withCredentials([usernamePassword(credentialsId: 'docker-cred', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
-              sh '''
-                cd spring-boot-app
-                export HOME=/tmp
-                mkdir -p $HOME/.docker
-                echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin
-                docker build -t $DOCKER_IMAGE .
-                docker push $DOCKER_IMAGE
-              '''
-            }
-          }
+        withCredentials([usernamePassword(credentialsId: 'docker-cred', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
+          sh '''
+            cd spring-boot-app
+            echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin
+            docker build -t deepakb05/java-cicd:${BUILD_NUMBER} .
+            docker push deepakb05/java-cicd:${BUILD_NUMBER}
+          '''
         }
       }
+    }
 }
 
 
@@ -82,5 +74,4 @@ pipeline {
         }
       }
     }
-  }
 }
