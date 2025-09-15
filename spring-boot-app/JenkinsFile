@@ -46,6 +46,8 @@ pipeline {
         withCredentials([usernamePassword(credentialsId: 'docker-cred', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
           sh '''
             cd spring-boot-app
+            export HOME=/tmp
+            mkdir -p $HOME/.docker
             echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin
             docker build -t deepakb05/java-cicd:${BUILD_NUMBER} .
             docker push deepakb05/java-cicd:${BUILD_NUMBER}
@@ -53,6 +55,7 @@ pipeline {
         }
       }
     }
+
 
 
     stage('Update Deployment File') {
