@@ -6,10 +6,14 @@ pipeline {
     }
   }
   stages {
+    stage('Cleanup') {
+      steps {
+        deleteDir()  // wipes out the workspace before checkout
+      }
+    }
     stage('Checkout') {
       steps {
-        sh 'echo passed'
-        //git branch: 'main', url: 'https://github.com/deepak5-ux/Jenkins-java-app.git'
+        checkout scm
       }
     }
     stage('Build and Test') {
