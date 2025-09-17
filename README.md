@@ -1,4 +1,4 @@
-# Jenkins Pipeline for Java Application using Maven, SonarQube, Argo CD, Helm, and Kubernetes
+# Jenkins Pipeline for Java Application using Maven, SonarQube, Argo CD, and Kubernetes
 
 ![Pipeline Overview](https://user-images.githubusercontent.com/43399466/228301952-abc02ca2-9942-4a67-8293-f76647b6f9d8.png)
 
