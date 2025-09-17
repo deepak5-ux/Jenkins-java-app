@@ -10,8 +10,8 @@ This is a MVC architecture based application where controller returns a page wit
 Checkout the repo and move to the directory
 
 ```
-git clone https://github.com/iam-veeramalla/Jenkins-Zero-To-Hero/java-maven-sonar-argocd-helm-k8s/sprint-boot-app
-cd java-maven-sonar-argocd-helm-k8s/sprint-boot-app
+git clone https://github.com/deepak5-ux/Jenkins-java-app.git
+cd sprint-boot-app
 ```
 
 Execute the Maven targets to generate the artifacts
@@ -37,34 +37,28 @@ java -jar target/spring-boot-web.jar
 Build the Docker Image
 
 ```
-docker build -t ultimate-cicd-pipeline:v1 .
+docker build -t java-cicd-pipeline:v1 .
 ```
 
 ```
-docker run -d -p 8010:8080 -t ultimate-cicd-pipeline:v1
+docker run -d -p 8010:8080 -t java-cicd-pipeline:v1
 ```
 
 Hurray !! Access the application on `http://<ip-address>:8010`
 
+### 📌 Next Steps
 
-## Next Steps
+Now that you have the application running locally, try extending this project into a full CI/CD pipeline using the following tools:
 
-### Configure a Sonar Server locally
+**Jenkins** – Automate build, test, and deployment
 
-```
-System Requirements
-Java 17+ (Oracle JDK, OpenJDK, or AdoptOpenJDK)
-Hardware Recommendations:
-   Minimum 2 GB RAM
-   2 CPU cores
-sudo apt update && sudo apt install unzip -y
-adduser sonarqube
-wget https://binaries.sonarsource.com/Distribution/sonarqube/sonarqube-10.4.1.88267.zip
-unzip *
-chown -R sonarqube:sonarqube /opt/sonarqube
-chmod -R 775 /opt/sonarqube
-cd /opt/sonarqube/bin/linux-x86-64
-./sonar.sh start
+**Docker** – Build and publish container images
+
+**Kubernetes (Minikube/Cluster)** – Deploy and manage application at scale
+
+**Argo CD** – GitOps-based continuous delivery for Kubernetes
+
+👉 A complete guide for this end-to-end pipeline is provided in the root-level README of this repository.
 ```
 
 Hurray !! Now you can access the `SonarQube Server` on `http://<ip-address>:9000` 
