@@ -59,8 +59,3 @@ Now that you have the application running locally, try extending this project in
 **Argo CD** – GitOps-based continuous delivery for Kubernetes
 
 👉 A complete guide for this end-to-end pipeline is provided in the root-level README of this repository.
-```
-
-Hurray !! Now you can access the `SonarQube Server` on `http://<ip-address>:9000` 
-
-
